@@ -1,0 +1,9 @@
+<RCC>
+    <qresource>
+        <file>png/db3.png</file>
+        <file>png/sms.ico</file>
+        <file>png/sql.png</file>
+        <file>png/info.png</file>
+    </qresource>
+</RCC>
+
