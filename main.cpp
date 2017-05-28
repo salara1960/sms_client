@@ -24,7 +24,7 @@ QString s2="_~@";
     if (argc>1) {
         if (!strcmp(argv[1],"--help")) {
             cout << "\nYou can enter 4 parametrs, for example\n"\
-                    "./wxwx par1 par2 par3 par4\n where :\n"\
+                    "./sms_client par1 par2 par3 par4\n where :\n"\
                     "\tpar1 = sqlite3 or mysql  -  database type\n"\
                     "\tpar2 = 2 or 3 or 4  -  protocol version\n"\
                     "\tpar3 = 127.0.0.1  -  ip address of sms server\n"\
@@ -42,8 +42,6 @@ QString s2="_~@";
     }
     if (argc>4) sport = atoi(argv[4]);
 
-//    pid_t main_pid = getpid();
-//    cout << "Main pid=" << main_pid << endl;
 
     setlocale(LC_ALL,"UTF8");
 
@@ -59,7 +57,7 @@ QString s2="_~@";
         wnd.show();
         arm.exec();
     }
-    // Блок обработки ошибок, (позиционный код):
+    // Error handler block:
     // - 0x01 - memory error
     // - 0x02 - timer error
     // - 0x04 - Qstring::toInt error

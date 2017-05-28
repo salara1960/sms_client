@@ -1389,8 +1389,6 @@ QString tp;
         tbl->setRowCount(total);//количество строк
         tbl->setColumnCount(8); //количество столбцов
 
-//        tbl->setIcon(QIcon(QPixmap("qt.png")));
-//        tbl->setTextAlignment(Qt::AlignVCenter);
 
         int row, column;
         QStringList *lt = new QStringList(QStringList() << "#" << "RK" << "Body" << "Len" << "Type" << "Num" << "Part" << "Time");
