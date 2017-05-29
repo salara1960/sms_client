@@ -151,7 +151,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>k16</string>
+    <string>sms</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
@@ -167,7 +167,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>elgato</string>
+    <string>sms</string>
    </property>
    <property name="echoMode">
     <enum>QLineEdit::Normal</enum>

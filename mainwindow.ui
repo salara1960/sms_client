@@ -141,7 +141,7 @@
      </font>
     </property>
     <property name="text">
-     <string>k16</string>
+     <string>sms</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="pwd_w">
@@ -162,7 +162,7 @@
      <string/>
     </property>
     <property name="text">
-     <string>elgato</string>
+     <string>sms</string>
     </property>
     <property name="echoMode">
      <enum>QLineEdit::PasswordEchoOnEdit</enum>
