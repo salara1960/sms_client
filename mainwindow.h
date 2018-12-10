@@ -3,12 +3,11 @@
 
 //#define WITH_ASM
 
-//#define QT4
-
 //#define TRACE
 
 //#define CMD_FILE
 
+#include <stdio.h>
 #include <QApplication>
 #include <QtSql/QtSql>
 #include <QtSql/QSqlDatabase>
@@ -26,42 +25,21 @@
 #include <QProgressBar>
 #include <QFileDialog>
 
-
-#ifdef QT4
-    #include <QMainWindow>
-    #include <QDialog>
-    #include <QDialogButtonBox>
-    #include <QLineEdit>
-    #include <QMessageBox>
-    #include <QTableWidget>
-    #include <QTableWidgetItem>
-    #include <QPushButton>
-    #include <QAudioOutput>
-    #include <QAudioFormat>
-    #include <phonon/MediaObject>
-#else
-    #include <QWidget>
-    #include <QtWidgets/QMainWindow>
-    #include <QtWidgets/QDialog>
-    #include <QtWidgets/QDialogButtonBox>
-    #include <QtWidgets/QLineEdit>
-    #include <QtWidgets/QMessageBox>
-    #include <QtWidgets/QTableWidget>
-    #include <QtWidgets/QTableWidgetItem>
-    #include <QtWidgets/QPushButton>
-#endif
+#include <QWidget>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QDialog>
+#include <QtWidgets/QDialogButtonBox>
+#include <QtWidgets/QLineEdit>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QTableWidget>
+#include <QtWidgets/QTableWidgetItem>
+#include <QtWidgets/QPushButton>
 
 #ifdef CMD_FILE
     #include <fstream>
 #endif
 
 #include <iostream>
-//#include <stdio.h>
-//#include <string.h>
-
-// PID
-//#include <sys/types.h>
-//#include <unistd.h>
 
 
 //********************************************************************************
@@ -196,15 +174,15 @@ typedef struct
 } s_str_6;
 typedef struct
 {
-    unsigned char status;             // stat     +0
-    unsigned char check_min;          // min      +1
-    unsigned char check_chas;         // chas     +2
-    unsigned char check_day;          // day      +3
-    unsigned char check_mes;          // mes      +4
-    unsigned char add_min;            // min      +5
-    unsigned char add_chas;           // chas     +6
-    unsigned char add_day;            // day      +7
-    unsigned char add_mes;            // mes      +8
+    unsigned char status;       // stat     +0
+    unsigned char check_min;    // min      +1
+    unsigned char check_chas;   // chas     +2
+    unsigned char check_day;    // day      +3
+    unsigned char check_mes;    // mes      +4
+    unsigned char add_min;      // min      +5
+    unsigned char add_chas;     // chas     +6
+    unsigned char add_day;      // day      +7
+    unsigned char add_mes;      // mes      +8
 } s_str_9;
 #pragma pack(pop)
 //********************************************************************************
@@ -232,7 +210,6 @@ private:
 #define TRACER TrLog TrLog(__FILE__ , __FUNCTION__ , __LINE__);
 
 #endif
-//--------------------------------------------------------------
 //--------------------------------------------------------------
 class SmsDialog : public QDialog
 {
@@ -266,7 +243,7 @@ public:
     };
 
     explicit SmsWindow(QWidget *parent = 0,
-                       QString dbname="sms",
+                       QString dbname = "sms",
                        QStringList *dblist = new QStringList (QStringList() << "localhost" << "3306" << "root" << ""));
     ~SmsWindow();
 
@@ -283,17 +260,11 @@ public:
     int ReadDB(QString *, const int);
     int TotalRecords();
     void UpdateTitle();
-/**/
     void InitWaitBar();
     void DelWaitBar();
-/*
-signals:
-    void SignalTimeOut();
-*/
+
 public slots:
-/**/
     void TimeOut();
-/**/
     void About();
     void ClkSend();
     void cmd_176();
@@ -313,7 +284,7 @@ public slots:
     void NextRecDown();
     void NextRecUp();
     void DelRecord();
-    void RowNum(int,int) const;
+    void RowNum(int, int) const;
 
 private:
     char *st;
@@ -336,7 +307,6 @@ private:
     QLabel *nrec;
     QMutex mutex;//mutex_lock/unlock for tick
     QProgressBar *wait_bar;
-
 };
 
 #endif // MAINWINDOW_H
