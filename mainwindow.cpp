@@ -47,7 +47,7 @@ const unsigned char BIT_CDS     = 0x40;
 
 //const char *ver = "4.3";//add __asm()
 //const char *ver = "4.4";
-const QString ver = "v4.5";
+const QString ver = "v4.5.1";//11.12.2018
 
 
 #ifdef CMD_FILE
@@ -145,7 +145,7 @@ void SmsDialog::CancelSlot() {
 //
 //--------------------------------------------------------------------------------
 //                         clss SmsWindow
-SmsWindow::SmsWindow(QWidget *parent, QString dbname, QStringList *dblist) :
+SmsWindow::SmsWindow(QWidget *parent, QString dbname, QStringList *dblist, s_srv_url *usrv) :
                             QMainWindow(parent), ui(new Ui::SmsWindow)
 {
     tick = tmr = 0;   //TimerID -> 0
@@ -166,9 +166,18 @@ SmsWindow::SmsWindow(QWidget *parent, QString dbname, QStringList *dblist) :
     wait_bar = NULL;
 
     ui->setupUi(this);
+    this->setWindowIcon(QIcon(":/png/sms.png"));
     this->setFixedSize(this->size());
 
-    SetDBName(dbname);
+    sep = "$^$";
+    sepl = "_~@";
+    db_name = dbname;
+
+    if (usrv) {
+        srv_adr = usrv->adr;
+        srv_port = usrv->port;
+    }
+    ui->ip_w->setText(srv_adr + ":" + QString::number(srv_port, 10));
 
     if (mysql) {// MYSQL
         tbl_stat = "mysql DB " + db_name + " : ";
@@ -318,7 +327,7 @@ void SmsWindow::UpdateTitle()
 QString tit = "SMS client " + ver + " | server - " + ui->ip_w->text();
 
     total_records = TotalRecords();
-    setWindowTitle(tit);
+    this->setWindowTitle(tit);
 
 }
 //--------------------------------------------------------------------------------
@@ -326,34 +335,14 @@ void SmsWindow::About()
 {
 QString stx;
 
-    stx.append("SMS клиент для устройств g20/i32\nВерсия " + ver + "\nТекущая БД '"+ db_name+"' ");
+    stx.append("SMS client for devices g20/i32\nVersion " + ver + "\nDatabase '"+ db_name+"' ");
     if (mysql) {
         stx.append("(mysql)\n    host : " + db.hostName() + ":" + QString::number(db.port()) + "\n");
         stx.append("    user '%s'" + db.userName() + " pas '%s'" + db.password());
     } else stx.append("(sqlite3)");
-    stx.append("\nСервер : " + ui->ip_w->text());
+    stx.append("\nServer : " + ui->ip_w->text());
 
     QMessageBox::information(this, "About this", stx);
-}
-//--------------------------------------------------------------------------------
-void SmsWindow::SelectServer(QString &adr, unsigned short port)
-{
-    srv_adr = adr;
-    srv_port = port;
-    QString tp = "";
-    tp.sprintf(":%d", port);
-    tp.insert(0, adr);
-    ui->ip_w->setText(tp);
-}
-//--------------------------------------------------------------------------------
-void SmsWindow::SetDBName(QString &new_db_name)
-{
-    db_name = new_db_name;
-}
-//--------------------------------------------------------------------------------
-void SmsWindow::SetSeparators(QString &sep1, QString &sep2)
-{
-    sep = sep1; sepl = sep2;
 }
 //--------------------------------------------------------------------------------
 void SmsWindow::cmd_176() { ui->cmd_w->setText(cmd_name[2]); buttonClickedSlot(&cmd_help[2]); }
@@ -465,8 +454,8 @@ void SmsWindow::ClkSend() {
     }
 }
 //--------------------------------------------------------------------------------
-// Конструктор класса ошибок
-SmsWindow::TheError::TheError(int err) { code = err; }
+//--------------------------------------------------------------------------------
+SmsWindow::TheError::TheError(int err) { code = err; }// Конструктор класса ошибок
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
 //метод обработки нажатия кнопки Send
@@ -474,20 +463,20 @@ void SmsWindow::buttonClickedSlot(const QString *hdr) {
 
     QString qst = ui->cmd_w->text();
 
-    if (qst != "") {
+    if (qst.length()) {
         bool ok;
         CMD = qst.toInt(&ok, 10);
         if (!ok) {
             MyError |= 4;//"atoi" error
             throw TheError(MyError);
         }
-        int rdy = 0;
+
         Dlg = new SmsDialog;
         if (!Dlg) {
             MyError |= 1;//memory error
             throw TheError(MyError);
         }
-        rdy = 1;
+        int rdy = 1;
         switch (CMD) {
             case 167:// Init send
                 Dlg->ui_dlg->cmd_d_w->setText(ui->cmd_w->displayText());
@@ -587,7 +576,6 @@ void SmsWindow::SetTick(int t)
     mutex.unlock();
 }
 //--------------------------------------------------------------------------------
-// метод обработки события от таймера (таймаут обработчик)
 void SmsWindow::timerEvent(QTimerEvent *event)
 {
     if (tmr == event->timerId()) {
@@ -595,7 +583,6 @@ void SmsWindow::timerEvent(QTimerEvent *event)
         tim = localtime(&ttm);
         QString *stk = new QString;
         if (stk) {
-            stk->clear();
             stk->sprintf("%02d.%02d.%04d  %02d:%02d:%02d",
                 tim->tm_mday, tim->tm_mon + 1, tim->tm_year + 1900,
                 tim->tm_hour, tim->tm_min, tim->tm_sec);
@@ -624,10 +611,9 @@ void SmsWindow::TimeOut()
 {
     statusBar()->showMessage("!!! TimeOut socket ERROR !!!");
     DelWaitBar();
-    QMessageBox::information(0,"Information message","Timeout Socket !");
+    QMessageBox::information(0, "Information message", "Timeout Socket !");
 }
 //--------------------------------------------------------------------------------
-//-----  TCP   ---------------------------
 void SmsWindow::SokError(QAbstractSocket::SocketError SocketError)
 {
     SetTick(0);
@@ -672,9 +658,9 @@ s_cmd_169 *buf_169 = NULL;
         case 176 :
         case 161 :
         case 172 :
-            sz=sizeof(s_cmd_176);
+            sz = sizeof(s_cmd_176);
             //bu = (unsigned char *)calloc(1,sz);
-            bu = reinterpret_cast<unsigned char *>(calloc(1,sz));
+            bu = reinterpret_cast<unsigned char *>(calloc(1, sz));
             if (!bu) break;
             buf_176 = (s_cmd_176 *)bu;
 
@@ -724,9 +710,7 @@ s_cmd_169 *buf_169 = NULL;
                 tmp.sprintf("data_size = %d, struct_size=%d", dl, sz);
                 QMessageBox::information(this,"Error MkCmd", tmp);
             }
-
             ready = true;
-
         break;
         case 168 :
         case 171 :
@@ -767,10 +751,9 @@ s_cmd_169 *buf_169 = NULL;
             dl = data.size();
             if (dl != sz) {
                 tmp.clear(); tmp.sprintf("data_size = %d, struct_size=%d", dl, sz);
-                QMessageBox::information(this,"Error MkCmd", tmp);
+                QMessageBox::information(this, "Error MkCmd", tmp);
             }
-
-            ready=true;
+            ready = true;
         break;
         case 169 :
         case 170 :
@@ -809,8 +792,8 @@ s_cmd_169 *buf_169 = NULL;
             if (buf_169->rk > 0) buf_169->rk--;
             RK = buf_169->rk;
 
-            tmp=ui->sim_w->text();
-            if (CMD == 169) pint = 15; else pint = 31;//CMD=170
+            tmp = ui->sim_w->text();
+            if (CMD == 169) pint = 15; else pint = 31;
             if (tmp.length() > pint) tmp.truncate(pint);
             auth.clear(); auth.append(tmp); uki = (unsigned char *)auth.data();
             memcpy((unsigned char *)buf_169->line, (unsigned char *)uki, auth.length());
@@ -821,15 +804,13 @@ s_cmd_169 *buf_169 = NULL;
             dl = data.size();
             if (dl != sz) {
                 tmp.clear(); tmp.sprintf("data_size = %d, struct_size=%d", dl, sz);
-                QMessageBox::information(this,"Error MkCmd", tmp);
+                QMessageBox::information(this, "Error MkCmd", tmp);
             }
-
-            ready=true;
-
+            ready = true;
         break;
         case 167 :
             sz = sizeof(s_cmd_167);
-            bu = (unsigned char *)calloc(1,sz);
+            bu = (unsigned char *)calloc(1, sz);
             if (!bu) break;
             buf_167 = (s_cmd_167 *)bu;
 
@@ -906,11 +887,8 @@ s_cmd_169 *buf_169 = NULL;
             k16 = 0; ks16 = ksum(k16, (unsigned char *)(uki + 10), sz + dl - 10);
             data.data()[8] = (unsigned char)ks16;
             data.data()[9] = (unsigned char)(ks16 >> 8);
-
-            ready=true;
-
+            ready = true;
         break;
-
     }//end switch(CMD)
 
     if (bu) free(bu);
@@ -929,7 +907,7 @@ s_cmd_169 *buf_169 = NULL;
 #endif
     }
 }
-
+//--------------------------------------------------------------------------------
 void SmsWindow::disconnectTcp()
 {
 #ifdef TRACE
@@ -940,7 +918,7 @@ void SmsWindow::disconnectTcp()
     if (_pSocket->isOpen()) {
         disconnect(_pSocket, SIGNAL(connected()), this, SLOT(connectTcp()));
         disconnect(_pSocket, SIGNAL(disconnected()), this, SLOT(disconnectTcp()));
-        disconnect(_pSocket, SIGNAL(error(QAbstractSocket::SocketError)),this,SLOT(SokError(QAbstractSocket::SocketError)));
+        disconnect(_pSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(SokError(QAbstractSocket::SocketError)));
         disconnect(_pSocket, SIGNAL(readyRead()), this, SLOT(readData()));
         _pSocket->disconnectFromHost();
         _pSocket->close();//delete _pSocket;
@@ -961,7 +939,7 @@ s_ack_167 * uk_hdr_167 = NULL;
 s_ack_161 * uk_hdr_161 = NULL;
 s_str_6 *dat6 = NULL;
 s_str_9 *dat9 = NULL;
-char *stn=NULL, *uk = NULL;
+char *stn = NULL, *uk = NULL;
 unsigned char *uki = NULL;
 
     stn = (char *)calloc(1, max_st);
@@ -970,7 +948,7 @@ unsigned char *uki = NULL;
         throw TheError(MyError);
     }
 
-if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
+  if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
         (CMD == 170) || (CMD == 171) || (CMD == 172) || (CMD == 176)) {
     rdata.clear();
     rdata = _pSocket->read(dl);//прием первых 8-ми байт пакета от сервера
@@ -993,12 +971,12 @@ if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
                 switch (CMD) {
                 case 176 :
                     uk = rdata.data();
-                    k8 = 0; k8 = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
+                    k8  = 0; k8  = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
                     k16 = 0; k16 = ksum(k16, (unsigned char *)(uk + 10),ln - 10);// подсчет контрольной суммы ks2
                     uk_hdr = (s_ack_hdr *)uk;
                     memset(stn, 0, max_st); tmp.clear();
                     sprintf(stn,"[%d/%d] ver=%d BOS=%d ", ln, uk_hdr->len, uk_hdr->ver, uk_hdr->bos);
-                    if (k8 != uk_hdr->ks1) sprintf(stn+strlen(stn), "ks1=0x%02X/0x%02X ", uk_hdr->ks1, k8);
+                    if (k8  != uk_hdr->ks1) sprintf(stn+strlen(stn), "ks1=0x%02X/0x%02X ", uk_hdr->ks1, k8);
                     if (k16 != uk_hdr->ks2) sprintf(stn+strlen(stn), "ks2=0x%04X/0x%04X ", uk_hdr->ks2, k16);
                     if (ln >= sizeof(s_ack_hdr) + 2) {
                         uk_hdr_176 = (s_ack_176 *)uk;
@@ -1054,16 +1032,13 @@ if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
                     if (ln < sizeof(s_ack_167)) tmp.sprintf("%d bytes recv\nSMS Buffer is empty", ln);
                     else {// контроль динны информационной части пакета
                         uk = rdata.data();
-                        k8 = 0; k8 = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
+                        k8  = 0; k8  = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
                         k16 = 0; k16 = ksum(k16, (unsigned char *)(uk + 10),ln - 10);// подсчет контрольной суммы ks2
                         uk_hdr_167 = (s_ack_167 *)uk;
                         memset(stn, 0, max_st);
-                        sprintf(stn, "[%d/%d] ver=%d BOS=%d cmd=%d ",
-                                ln, uk_hdr_167->len, uk_hdr_167->ver, uk_hdr_167->bos, uk_hdr_167->cmd);
-                        if (k8 != uk_hdr_167->ks1)
-                                sprintf(stn+strlen(stn),"ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
-                        if (k16 != uk_hdr_167->ks2)
-                                sprintf(stn+strlen(stn),"ks2=0x%04X/0x%04X ", uk_hdr_167->ks2, k16);
+                        sprintf(stn, "[%d/%d] ver=%d BOS=%d cmd=%d ", ln, uk_hdr_167->len, uk_hdr_167->ver, uk_hdr_167->bos, uk_hdr_167->cmd);
+                        if (k8  != uk_hdr_167->ks1) sprintf(stn+strlen(stn),"ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
+                        if (k16 != uk_hdr_167->ks2) sprintf(stn+strlen(stn),"ks2=0x%04X/0x%04X ", uk_hdr_167->ks2, k16);
                         tmp_stat.sprintf("%s", stn);
                         tmp.clear();
                     }
@@ -1074,16 +1049,13 @@ if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
                     if (ln < dl) tmp.sprintf("%d bytes recv\nSMS Buffer is empty", ln);
                     else {// контроль динны информационной части пакета
                         uk = rdata.data();
-                        k8 = 0; k8 = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
+                        k8  = 0; k8  = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
                         k16 = 0; k16 = ksum(k16, (unsigned char *)(uk + 10), ln - 10);// подсчет контрольной суммы ks2
                         uk_hdr_167 = (s_ack_167 *)uk;
                         memset(stn, 0, max_st);
-                        sprintf(stn, "[%d/%d] ver=%d BOS=%d cmd=%d ",
-                                ln, uk_hdr_167->len, uk_hdr_167->ver, uk_hdr_167->bos, uk_hdr_167->cmd);
-                        if (k8 != uk_hdr_167->ks1)
-                                sprintf(stn+strlen(stn),"ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
-                        if (k16 != uk_hdr_167->ks2)
-                                sprintf(stn+strlen(stn),"ks2=0x%04X/0x%04X ", uk_hdr_167->ks2, k16);
+                        sprintf(stn, "[%d/%d] ver=%d BOS=%d cmd=%d ", ln, uk_hdr_167->len, uk_hdr_167->ver, uk_hdr_167->bos, uk_hdr_167->cmd);
+                        if (k8  != uk_hdr_167->ks1) sprintf(stn+strlen(stn),"ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
+                        if (k16 != uk_hdr_167->ks2) sprintf(stn+strlen(stn),"ks2=0x%04X/0x%04X ", uk_hdr_167->ks2, k16);
                         tmp_stat.sprintf("%s", stn);
 
                         tmp.clear(); memset(stn, 0, max_st);
@@ -1109,12 +1081,12 @@ if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
                     if (ln < dl) tmp.sprintf("%d bytes recv\nSMS Buffer is empty", ln);
                     else {// контроль динны информационной части пакета
                         uk = rdata.data();
-                        k8 = 0; k8 = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
+                        k8  = 0; k8  = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
                         k16 = 0; k16 = ksum(k16, (unsigned char *)(uk + 10), ln - 10);// подсчет контрольной суммы ks2
                         uk_hdr_167 = (s_ack_167 *)uk;
                         memset(stn, 0, max_st);
                         sprintf(stn, "[%d/%d] ver=%d BOS=%d cmd=%d ", ln, uk_hdr_167->len, uk_hdr_167->ver, uk_hdr_167->bos, uk_hdr_167->cmd);
-                        if (k8 != uk_hdr_167->ks1) sprintf(stn+strlen(stn),"ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
+                        if (k8  != uk_hdr_167->ks1) sprintf(stn+strlen(stn),"ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
                         if (k16 != uk_hdr_167->ks2) sprintf(stn+strlen(stn),"ks2=0x%04X/0x%04X ", uk_hdr_167->ks2, k16);
                         tmp_stat.sprintf("%s", stn);
                         tmp.clear();
@@ -1133,12 +1105,12 @@ if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
                     if (ln < dl) tmp.sprintf("%d bytes recv\nSMS Buffer is empty", ln);
                     else {// контроль динны информационной части пакета
                         uk = rdata.data();
-                        k8 = 0; k8 = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
+                        k8  = 0; k8  = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
                         k16 = 0; k16 = ksum(k16, (unsigned char *)(uk + 10), ln - 10);// подсчет контрольной суммы ks2
                         uk_hdr_161 = (s_ack_161 *)uk;
                         memset(stn, 0, max_st);
                         sprintf(stn, "[%d/%d] ver=%d BOS=%d cmd=%d ", ln, uk_hdr_161->len, uk_hdr_161->ver, uk_hdr_161->bos, uk_hdr_161->cmd);
-                        if (k8 != uk_hdr_161->ks1) sprintf(stn+strlen(stn), "ks1=0x%02X/0x%02X ", uk_hdr_161->ks1, k8);
+                        if (k8  != uk_hdr_161->ks1) sprintf(stn+strlen(stn), "ks1=0x%02X/0x%02X ", uk_hdr_161->ks1, k8);
                         if (k16 != uk_hdr_161->ks2) sprintf(stn+strlen(stn), "ks2=0x%04X/0x%04X ", uk_hdr_161->ks2, k16);
                         tmp_stat.sprintf("%s", stn);
 
@@ -1157,25 +1129,25 @@ if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
                     if (ln < dl) tmp.sprintf("%d bytes recv\nSMS Buffer is empty", ln);
                     else {// контроль динны информационной части пакета
                         uk = rdata.data();
-                        k8 = 0; k8 = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
+                        k8  = 0; k8  = ksum(k8, (unsigned char *)uk, 7);// подсчет контрольной суммы ks1
                         k16 = 0; k16 = ksum(k16, (unsigned char *)(uk + 10), ln - 10);// подсчет контрольной суммы ks2
                         uk_hdr_167 = (s_ack_167 *)uk;
                         memset(stn, 0, max_st);
                         sprintf(stn, "[%d/%d] ver=%d BOS=%d cmd=%d ", ln, uk_hdr_167->len, uk_hdr_167->ver, uk_hdr_167->bos, uk_hdr_167->cmd);
-                        if (k8 != uk_hdr_167->ks1) sprintf(stn+strlen(stn), "ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
+                        if (k8  != uk_hdr_167->ks1) sprintf(stn+strlen(stn), "ks1=0x%02X/0x%02X ", uk_hdr_167->ks1, k8);
                         if (k16 != uk_hdr_167->ks2) sprintf(stn+strlen(stn), "ks2=0x%04X/0x%04X ", uk_hdr_167->ks2, k16);
                         tmp_stat.sprintf("%s", stn);
 
                         tmp.clear(); memset(stn, 0, max_st);
                         j = sizeof(s_str_9);
                         i = (ln - dl) / j;
-                        if (i>0) {//количество строк (по 9 байт каждая)
+                        if (i > 0) {//количество строк (по 9 байт каждая)
                             uk = rdata.data(); uk += dl;
                             rk = 0;
                             while (i > 0) {
                                 dat9 = (s_str_9 *)uk;
                                 sprintf(stn+strlen(stn), "[%02d] stat: 0x%02X , check: %02d.%02d %02d:%02d , add : %02d.%02d %02d:%02d\n",
-                                        rk+1, dat9->status,
+                                        rk + 1, dat9->status,
                                         dat9->check_day, dat9->check_mes, dat9->check_chas, dat9->check_min,
                                         dat9->add_day, dat9->add_mes, dat9->add_chas, dat9->add_min);
                                 uk += j; i--; rk++;
@@ -1186,19 +1158,19 @@ if ((CMD == 161) || (CMD == 167) || (CMD == 168) || (CMD == 169) ||
                     ready = true;
                 break;
                 }//end switch(CMD)
-            }// else // прием информационной части пакета успешно завершен
-        }//if (word>0)
+            }// прием информационной части пакета успешно завершен
+        }//if (word > 0)
     }
-}// end CMD=161 || CMD=167 ....
-if (ready) {
+  }// end CMD = 161 || CMD = 167 ....
+  if (ready) {
     SetTick(0);
     statusBar()->showMessage(tmp_stat);
     ui->answer_w->clear(); ui->answer_w->setText(tmp);
     disconnectTcp();
 
     UpdateTitle();
-}
-if (stn) free(stn);
+  }
+  if (stn) free(stn);
 
 }
 //--------------------------------------------------------------------------------
@@ -1214,7 +1186,7 @@ QSqlQuery query(db);
 
     if (openok) {
         time_t ttm;
-        struct tm *timi;//for convert time (localtime)
+        struct tm *timi;
         bool good;
         QString tmp, tp;
         if (!kol)
@@ -1289,11 +1261,11 @@ QString tp;
         QPalette *pal = new QPalette(this->ui->db_w->palette());
         QFont *font = new QFont(this->ui->ip_w->font());
 
-        wnd->setWindowIcon(QIcon(QPixmap(":png/sql.png")));
+        wnd->setWindowIcon(QIcon(":png/sql.png"));
 
         rr.setLeft(rr.left() + 20);
         rr.setHeight(rr.height() + 30);
-        rr.setWidth(rr.width() + 140);
+        rr.setWidth(rr.width() + 145);
         rr.setHeight(rr.height() + 180);
 
         wnd->setGeometry(rr);
@@ -1326,8 +1298,7 @@ QString tp;
         b_del->setText("del");
         connect(b_del, SIGNAL(clicked()), this, SLOT(DelRecord()));
 
-
-        tp.sprintf("From DB: Last records %d", rec_count);
+        tp = "DB " + db_name + " (last rec. " + QString::number(rec_count, 10) + ")";
         wnd->setWindowTitle(tp);
 
         line.clear();
@@ -1341,10 +1312,9 @@ QString tp;
         delete font;
         delete pal;
 
-        tbl->resize(rr.width(), rr.height() - 40);
+        tbl->resize(rr.width() - 1, rr.height() - 40);
         tbl->setRowCount(total);//количество строк
         tbl->setColumnCount(8); //количество столбцов
-
 
         int row, column;
         QStringList *lt = new QStringList(QStringList() << "#" << "RK" << "Body" << "Len" << "Type" << "Num" << "Part" << "Time");

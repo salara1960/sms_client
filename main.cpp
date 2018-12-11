@@ -7,8 +7,6 @@ int cerr = 0;
 QString temp = "127.0.0.1";
 QString dbn;
 unsigned short sport = 9005;
-QString s1 = "$^$";
-QString s2 = "_~@";
 char stz[256] = {0};
 
 #ifdef Q_WS_X11
@@ -43,16 +41,14 @@ char stz[256] = {0};
     }
     if (argc > 4) sport = atoi(argv[4]);
 
-    setlocale(LC_ALL,"UTF8");
+    setlocale(LC_ALL,"UTF8"); 
 
     try {
         QApplication arm(argc, argv);
         if (mysql) dbn = "sms"; else dbn = "sms.db3";
         QStringList lst(QStringList() << "localhost" << "3306" << "root" << "");//для mysql :ip,port,login,password
-        SmsWindow wnd(NULL, dbn, &lst);
-        wnd.setWindowIcon(QIcon(QPixmap(":png/sms.ico")));
-        wnd.SetSeparators(s1, s2);
-        wnd.SelectServer(temp, sport);
+        s_srv_url srv_url = {temp, sport};
+        SmsWindow wnd(NULL, dbn, &lst, &srv_url);
         wnd.show();
         arm.exec();
     }

@@ -24,6 +24,7 @@
 #include <QMutex>
 #include <QProgressBar>
 #include <QFileDialog>
+#include <QIcon>
 
 #include <QWidget>
 #include <QtWidgets/QMainWindow>
@@ -185,6 +186,12 @@ typedef struct
     unsigned char add_mes;      // mes      +8
 } s_str_9;
 #pragma pack(pop)
+
+typedef struct
+{
+    QString adr;
+    int port;
+} s_srv_url;
 //********************************************************************************
 namespace Ui {
 class SmsWindow;
@@ -244,7 +251,8 @@ public:
 
     explicit SmsWindow(QWidget *parent = 0,
                        QString dbname = "sms",
-                       QStringList *dblist = new QStringList (QStringList() << "localhost" << "3306" << "root" << ""));
+                       QStringList *dblist = new QStringList (QStringList() << "localhost" << "3306" << "root" << ""),
+                       s_srv_url *usrv = NULL);
     ~SmsWindow();
 
     int GetTick();
@@ -252,10 +260,7 @@ public:
     void timerEvent(QTimerEvent *);
     void GetAdrPort();
     void NextRec();
-    void SetDBName(QString &);
-    void SetSeparators(QString &, QString &);
     void DeleteRec(const int nr);
-    void SelectServer(QString &, unsigned short);
     void buttonClickedSlot(const QString *);
     int ReadDB(QString *, const int);
     int TotalRecords();
