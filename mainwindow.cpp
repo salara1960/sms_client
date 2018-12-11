@@ -46,7 +46,9 @@ const unsigned char BIT_GSM8BIT = 0x04;
 const unsigned char BIT_CDS     = 0x40;
 
 //const char *ver = "4.3";//add __asm()
-const char *ver = "4.4";
+//const char *ver = "4.4";
+const QString ver = "v4.5";
+
 
 #ifdef CMD_FILE
 const char *fd_name = "cmd.bin";
@@ -146,7 +148,7 @@ void SmsDialog::CancelSlot() {
 SmsWindow::SmsWindow(QWidget *parent, QString dbname, QStringList *dblist) :
                             QMainWindow(parent), ui(new Ui::SmsWindow)
 {
-    tick = tmr = 0;     //TimerID -> 0
+    tick = tmr = 0;   //TimerID -> 0
     Cnt_send = 0;     //Message counter
     tim = NULL;       //pointer to struct tm
     MyError = 0;      //Code error for catch block
@@ -313,55 +315,25 @@ int ret = -1;
 //--------------------------------------------------------------------------------
 void SmsWindow::UpdateTitle()
 {
-QByteArray *tit = new QByteArray;
-QString *temp = new QString;
+QString tit = "SMS client " + ver + " | server - " + ui->ip_w->text();
 
     total_records = TotalRecords();
-
-    if (tit) {
-        tit->append("SMS клиент версия ");
-        tit->append(ver);
-        tit->append(" | сервер - ");
-        tit->append(ui->ip_w->text());
-        tit->append(" | в DB записей ");
-        if (temp) {
-            temp->sprintf("%d", total_records);
-            tit->append(*temp);
-        }
-        setWindowTitle(trUtf8(tit->data()));
-    }
-
-    if (temp) delete temp;
-    if (tit) delete tit;
+    setWindowTitle(tit);
 
 }
 //--------------------------------------------------------------------------------
 void SmsWindow::About()
 {
-QByteArray txt(db_name.toLocal8Bit());
-QString tp;
+QString stx;
 
-    sprintf(st,"SMS клиент для устройств g20/i32\nВерсия %s\nТекущая БД '%s' ", ver, txt.data());
+    stx.append("SMS клиент для устройств g20/i32\nВерсия " + ver + "\nТекущая БД '"+ db_name+"' ");
     if (mysql) {
-        txt.clear(); txt.append(db.hostName());
-        sprintf(st+strlen(st), "(mysql)\n    host : %s", txt.data());
-        int p = db.port();
-        if (p>0) {
-            txt.clear();
-            tp.sprintf(":%d", p); txt.append(tp);
-            sprintf(st+strlen(st), "%s", txt.data());
-        }
-        sprintf(st+strlen(st), "\n");
-        txt.clear(); txt.append(db.userName());
-        sprintf(st+strlen(st), "    user '%s'", txt.data());
-        txt.clear(); txt.append(db.password());
-        sprintf(st+strlen(st), " pas '%s'", txt.data());
-    } else sprintf(st+strlen(st), "(sqlite3)");
-    txt.clear(); txt.append(ui->ip_w->text());
-    sprintf(st+strlen(st), "\nСервер : %s", txt.data());
+        stx.append("(mysql)\n    host : " + db.hostName() + ":" + QString::number(db.port()) + "\n");
+        stx.append("    user '%s'" + db.userName() + " pas '%s'" + db.password());
+    } else stx.append("(sqlite3)");
+    stx.append("\nСервер : " + ui->ip_w->text());
 
-    QMessageBox::information(this, "About this", trUtf8(st));
-
+    QMessageBox::information(this, "About this", stx);
 }
 //--------------------------------------------------------------------------------
 void SmsWindow::SelectServer(QString &adr, unsigned short port)
