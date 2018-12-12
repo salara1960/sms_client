@@ -47,7 +47,8 @@ const unsigned char BIT_CDS     = 0x40;
 
 //const char *ver = "4.3";//add __asm()
 //const char *ver = "4.4";
-const QString ver = "v4.5.1";//11.12.2018
+//const QString ver = "v4.5.1";//11.12.2018
+const QString ver = "v4.5.2";//12.12.2018
 
 
 #ifdef CMD_FILE
@@ -583,8 +584,8 @@ void SmsWindow::timerEvent(QTimerEvent *event)
         tim = localtime(&ttm);
         QString *stk = new QString;
         if (stk) {
-            stk->sprintf("%02d.%02d.%04d  %02d:%02d:%02d",
-                tim->tm_mday, tim->tm_mon + 1, tim->tm_year + 1900,
+            stk->sprintf("%02d.%02d.%02d  %02d:%02d:%02d",
+                tim->tm_mday, tim->tm_mon + 1, tim->tm_year + 1900 - 2000,
                 tim->tm_hour, tim->tm_min, tim->tm_sec);
             ui->tmr_w->setText(*stk);
             delete stk;
@@ -1257,16 +1258,17 @@ QString tp;
         QString line;
         QStringList list, lst;
         QRect rr = this->ui->answer_w->geometry();
+        //QRect rr = this->geometry();
 
         QPalette *pal = new QPalette(this->ui->db_w->palette());
         QFont *font = new QFont(this->ui->ip_w->font());
 
         wnd->setWindowIcon(QIcon(":png/sql.png"));
 
-        rr.setLeft(rr.left() + 20);
-        rr.setHeight(rr.height() + 30);
-        rr.setWidth(rr.width() + 145);
-        rr.setHeight(rr.height() + 180);
+        rr.setLeft(rr.left() + 50);//20
+        rr.setHeight(rr.height() + 60);//30
+        rr.setWidth(rr.width() + 80);//120
+        rr.setHeight(rr.height() + 220);//180
 
         wnd->setGeometry(rr);
 
