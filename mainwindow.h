@@ -252,7 +252,7 @@ public:
     explicit SmsWindow(QWidget *parent = 0,
                        QString dbname = "sms",
                        QStringList *dblist = new QStringList (QStringList() << "localhost" << "3306" << "root" << ""),
-                       s_srv_url *usrv = NULL);
+                       s_srv_url *usrv = nullptr);
     ~SmsWindow();
 
     int GetTick();

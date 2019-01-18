@@ -48,7 +48,7 @@ char stz[256] = {0};
         if (mysql) dbn = "sms"; else dbn = "sms.db3";
         QStringList lst(QStringList() << "localhost" << "3306" << "root" << "");//для mysql :ip,port,login,password
         s_srv_url srv_url = {temp, sport};
-        SmsWindow wnd(NULL, dbn, &lst, &srv_url);
+        SmsWindow wnd(nullptr, dbn, &lst, &srv_url);
         wnd.show();
         arm.exec();
     }

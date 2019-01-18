@@ -2,12 +2,20 @@
 #include "ui_mainwindow.h"
 #include "ui_cmd_all.h"
 
+//const char *ver = "4.3";//add __asm()
+//const char *ver = "4.4";
+//const QString ver = "v4.5.1";//11.12.2018
+//const QString ver = "v4.5.2";//12.12.2018
+//const QString ver = "v4.5.3";//13.12.2018
+const QString ver = "v4.5.4";//18.01.2019
+
+
 const QString cmd_name[max_cmd] = {"167", "168", "176", "169", "161", "170", "171", "172"};
 const QString cmd_help[max_cmd] = {"Init send", "Status send", "Read SMS",
                            "Init check Balance", "Check balance",
                            "Init add balance", "Read balance status",
                            "Read balance status ext."};
-const char * mk_table_db3 = "CREATE TABLE IF NOT EXISTS sms ("\
+static const char * mk_table_db3 = "CREATE TABLE IF NOT EXISTS sms ("\
         "number INTEGER primary key autoincrement," \
         "s_rk INTEGER," \
         "s_len INTEREG," \
@@ -17,7 +25,7 @@ const char * mk_table_db3 = "CREATE TABLE IF NOT EXISTS sms ("\
         "s_cnt_part INTEGER," \
         "s_body TEXT," \
         "s_epoch TIMESTAMP);";
-const char * mk_table_mysql = "CREATE TABLE `sms` ("\
+static const char * mk_table_mysql = "CREATE TABLE `sms` ("\
         "`number` INT(11) PRIMARY KEY NOT NULL AUTO_INCREMENT,"\
         "`s_rk` INT(2),"\
         "`s_len` INT(4),"\
@@ -39,16 +47,12 @@ unsigned char mysql = 0;      // тип базы данных, по умолча
 static unsigned int sms_index = 0;
 //static unsigned int cnt_inline = 0;
 
-const unsigned char BIT_FLASH   = 0x80;
 const unsigned char BIT_UCS2    = 0x01;
 const unsigned char BIT_GSM7BIT = 0x02;
 const unsigned char BIT_GSM8BIT = 0x04;
 const unsigned char BIT_CDS     = 0x40;
+const unsigned char BIT_FLASH   = 0x80;
 
-//const char *ver = "4.3";//add __asm()
-//const char *ver = "4.4";
-//const QString ver = "v4.5.1";//11.12.2018
-const QString ver = "v4.5.2";//12.12.2018
 
 
 #ifdef CMD_FILE
@@ -151,20 +155,20 @@ SmsWindow::SmsWindow(QWidget *parent, QString dbname, QStringList *dblist, s_srv
 {
     tick = tmr = 0;   //TimerID -> 0
     Cnt_send = 0;     //Message counter
-    tim = NULL;       //pointer to struct tm
+    tim = nullptr;       //pointer to struct tm
     MyError = 0;      //Code error for catch block
-    st = NULL;        //pointer to temp char_string
-    _pSocket = NULL;
+    st = nullptr;        //pointer to temp char_string
+    _pSocket = nullptr;
     srv_adr = "127.0.0.1";
     srv_port = 9005;
-    Dlg = NULL;
+    Dlg = nullptr;
     RK = 0;
     rec_count = current = 0;
     total_records = -1;
     openok = false;
     QString tbl_stat, temp, dbs;
-    wnd = NULL;
-    wait_bar = NULL;
+    wnd = nullptr;
+    wait_bar = nullptr;
 
     ui->setupUi(this);
     this->setWindowIcon(QIcon(":/png/sms.png"));
@@ -301,7 +305,7 @@ SmsWindow::~SmsWindow()
     if (db.isOpen()) db.close();
     if (wnd) {
         delete wnd;
-        wnd = NULL;
+        wnd = nullptr;
     }
     delete ui;
     if (tmr > 0) killTimer(tmr);
@@ -343,7 +347,7 @@ QString stx;
     } else stx.append("(sqlite3)");
     stx.append("\nServer : " + ui->ip_w->text());
 
-    QMessageBox::information(this, "About this", stx);
+    QMessageBox::about(this, "About this", stx);
 }
 //--------------------------------------------------------------------------------
 void SmsWindow::cmd_176() { ui->cmd_w->setText(cmd_name[2]); buttonClickedSlot(&cmd_help[2]); }
@@ -359,7 +363,7 @@ void SmsWindow::GetAdrPort()
 {
 QString sp;
 QByteArray mas(ui->ip_w->text().toLocal8Bit());
-char *tp = NULL, *uk = NULL;
+char *tp = nullptr, *uk = nullptr;
 
     sp.clear();
     tp = mas.data();
@@ -435,7 +439,7 @@ void SmsWindow::DelWaitBar()
 {
     if (wait_bar) {
         delete wait_bar;
-        wait_bar = NULL;
+        wait_bar = nullptr;
     }
 }
 //--------------------------------------------------------------------------------
@@ -580,16 +584,13 @@ void SmsWindow::SetTick(int t)
 void SmsWindow::timerEvent(QTimerEvent *event)
 {
     if (tmr == event->timerId()) {
-        time_t ttm = QDateTime::currentDateTime().toTime_t();
+        time_t ttm = time(NULL);//QDateTime::currentDateTime().toTime_t();
         tim = localtime(&ttm);
-        QString *stk = new QString;
-        if (stk) {
-            stk->sprintf("%02d.%02d.%02d  %02d:%02d:%02d",
+        QString stk;
+        stk.sprintf("%02d.%02d.%02d  %02d:%02d:%02d",
                 tim->tm_mday, tim->tm_mon + 1, tim->tm_year + 1900 - 2000,
                 tim->tm_hour, tim->tm_min, tim->tm_sec);
-            ui->tmr_w->setText(*stk);
-            delete stk;
-        }
+        ui->tmr_w->setText(stk);
         bool ti = false;
         mutex.lock();
         ti = true;
@@ -612,7 +613,7 @@ void SmsWindow::TimeOut()
 {
     statusBar()->showMessage("!!! TimeOut socket ERROR !!!");
     DelWaitBar();
-    QMessageBox::information(0, "Information message", "Timeout Socket !");
+    QMessageBox::information(nullptr, "Information message", "Timeout Socket !");
 }
 //--------------------------------------------------------------------------------
 void SmsWindow::SokError(QAbstractSocket::SocketError SocketError)
@@ -631,7 +632,7 @@ void SmsWindow::SokError(QAbstractSocket::SocketError SocketError)
         qs->append(_pSocket->errorString());
         disconnectTcp();
         statusBar()->showMessage(*qs);
-        QMessageBox::information(this, "ERROR socket", *qs);
+        QMessageBox::critical(this, "ERROR socket", *qs);
     } else {
         disconnectTcp();
         statusBar()->showMessage(*qs + "unknown error");
@@ -641,17 +642,17 @@ void SmsWindow::SokError(QAbstractSocket::SocketError SocketError)
 //--------------------------------------------------------------------------------
 void SmsWindow::connectTcp()
 {
-unsigned char *uki = NULL, *bu = NULL;
+unsigned char *uki = nullptr, *bu = nullptr;
 int dl, sz, pint;
 bool ready = false, done;
 unsigned char k8 = 0, byte = 0;
 unsigned short k16 = 0, ks16 = 0;
 QString tmp, tp;
 QByteArray text, auth;
-s_cmd_176 *buf_176 = NULL;
-s_cmd_167 *buf_167 = NULL;
-s_cmd_168 *buf_168 = NULL;
-s_cmd_169 *buf_169 = NULL;
+s_cmd_176 *buf_176 = nullptr;
+s_cmd_167 *buf_167 = nullptr;
+s_cmd_168 *buf_168 = nullptr;
+s_cmd_169 *buf_169 = nullptr;
 
     DelWaitBar();
 
@@ -709,7 +710,7 @@ s_cmd_169 *buf_169 = NULL;
             if (dl != sz) {
                 tmp.clear();
                 tmp.sprintf("data_size = %d, struct_size=%d", dl, sz);
-                QMessageBox::information(this,"Error MkCmd", tmp);
+                QMessageBox::warning(this,"Error MkCmd", tmp);
             }
             ready = true;
         break;
@@ -752,7 +753,7 @@ s_cmd_169 *buf_169 = NULL;
             dl = data.size();
             if (dl != sz) {
                 tmp.clear(); tmp.sprintf("data_size = %d, struct_size=%d", dl, sz);
-                QMessageBox::information(this, "Error MkCmd", tmp);
+                QMessageBox::warning(this, "Error MkCmd", tmp);
             }
             ready = true;
         break;
@@ -805,7 +806,7 @@ s_cmd_169 *buf_169 = NULL;
             dl = data.size();
             if (dl != sz) {
                 tmp.clear(); tmp.sprintf("data_size = %d, struct_size=%d", dl, sz);
-                QMessageBox::information(this, "Error MkCmd", tmp);
+                QMessageBox::warning(this, "Error MkCmd", tmp);
             }
             ready = true;
         break;
@@ -934,14 +935,14 @@ unsigned char k8 = 0;
 bool gd, ready = false;
 QString tmp = "?????", tmp1, tmp_stat, tmp_db, tp, ttt;
 QTextCodec *codec;
-s_ack_hdr * uk_hdr = NULL;
-s_ack_176 * uk_hdr_176 = NULL;
-s_ack_167 * uk_hdr_167 = NULL;
-s_ack_161 * uk_hdr_161 = NULL;
-s_str_6 *dat6 = NULL;
-s_str_9 *dat9 = NULL;
-char *stn = NULL, *uk = NULL;
-unsigned char *uki = NULL;
+s_ack_hdr * uk_hdr = nullptr;
+s_ack_176 * uk_hdr_176 = nullptr;
+s_ack_167 * uk_hdr_167 = nullptr;
+s_ack_161 * uk_hdr_161 = nullptr;
+s_str_6 *dat6 = nullptr;
+s_str_9 *dat9 = nullptr;
+char *stn = nullptr, *uk = nullptr;
+unsigned char *uki = nullptr;
 
     stn = (char *)calloc(1, max_st);
     if (!stn) {
@@ -1250,7 +1251,7 @@ QString tp;
     if (wnd) {
         wnd->close();
         if (wnd) delete wnd;
-        wnd = NULL;
+        wnd = nullptr;
     }
     wnd = new QDialog;
     if (wnd) {
